@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getPlatformStats, getRegistrationTrend, getListingsByCounty,
   getActivityFeed, getAuditLog, adminGetTenantDetail,
-  sendEarbReminders, markEarbRenewed, sendTenantNotification,
+  getEarbTracker, sendEarbReminders, markEarbRenewed, sendTenantNotification,
 } from '../controllers/admin.controller';
 import { authenticate, requirePlatformAdmin } from '../middleware/auth';
 
@@ -21,6 +21,7 @@ router.get('/audit-log',                 getAuditLog);
 router.get('/tenants/:id',               adminGetTenantDetail);
 
 // EARB
+router.get('/earb-tracker',              getEarbTracker);
 router.post('/earb/send-reminders',      sendEarbReminders);
 router.patch('/earb/:tenantId/renew',    markEarbRenewed);
 
