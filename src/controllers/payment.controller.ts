@@ -126,8 +126,27 @@ export const getBillingOverview = async (req: AuthRequest, res: Response, next: 
     const tenant = await Tenant.findById(req.user!.tenantId);
     if (!tenant) { sendError(res, 'Tenant not found.', 404); return; }
     const limits = PLAN_LIMITS[tenant.subscriptionPlan];
-    const recentPayments = await Payment.find({ tenantId: tenant._id }).sort({ createdAt: -1 }).limit(5);
-    sendSuccess(res, 'Billing overview fetched.', { currentPlan: tenant.subscriptionPlan, subscriptionExpiresAt: tenant.subscriptionExpiresAt, mpesaPhone: tenant.mpesaPhone, usage: { listings: tenant.activeListings, listingsAllowed: limits.listings }, recentPayments });
+    const membersUsed = await User.countDocuments({ tenantId: tenant._id });
+    const now = new Date();
+    const isActive = tenant.status === 'active' && !!tenant.subscriptionExpiresAt && tenant.subscriptionExpiresAt > now;
+    const prices = SUBSCRIPTION_PRICES[tenant.subscriptionPlan as keyof typeof SUBSCRIPTION_PRICES];
+    const price = prices?.monthly ?? 0;
+    const listingsAllowed = limits.listings === Infinity ? 9999 : limits.listings;
+    const membersAllowed = (limits as any).users === Infinity ? 9999 : (limits as any).users;
+    sendSuccess(res, 'Billing overview fetched.', {
+      plan: {
+        name: tenant.subscriptionPlan,
+        price,
+        renewalDate: tenant.subscriptionExpiresAt,
+        active: isActive,
+      },
+      usage: {
+        listingsUsed: tenant.activeListings,
+        listingsAllowed,
+        membersUsed,
+        membersAllowed,
+      },
+    });
   } catch (err) { next(err); }
 };
 
