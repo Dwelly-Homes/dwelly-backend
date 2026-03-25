@@ -162,6 +162,19 @@ export const adminGetTenantDetail = async (req: AuthRequest, res: Response, next
   } catch (err) { next(err); }
 };
 
+// ─── EARB TRACKER ─────────────────────────────────────────────────────────────
+
+export const getEarbTracker = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const agents = await Tenant.find({
+      accountType: 'estate_agent',
+      verificationStatus: 'approved',
+    }).select('businessName earbNumber earbExpiryDate earbLastNotifiedAt contactEmail contactPhone');
+
+    sendSuccess(res, 'EARB tracker fetched.', agents);
+  } catch (err) { next(err); }
+};
+
 // ─── EARB EXPIRY REMINDERS ────────────────────────────────────────────────────
 
 export const sendEarbReminders = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
