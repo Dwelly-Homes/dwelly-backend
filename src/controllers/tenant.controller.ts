@@ -69,12 +69,13 @@ export const submitOnboarding = async (req: AuthRequest, res: Response, next: Ne
 
 export const adminGetTenants = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { status, verificationStatus, county, search, page = '1', limit = '20' } = req.query as Record<string, string>;
+    const { status, verificationStatus, county, search, accountType, page = '1', limit = '20' } = req.query as Record<string, string>;
     const filter: Record<string, unknown> = {};
     if (status) filter.status = status;
     if (verificationStatus) filter.verificationStatus = verificationStatus;
     if (county) filter.county = new RegExp(county, 'i');
     if (search) filter.businessName = new RegExp(search, 'i');
+    if (accountType) filter.accountType = accountType;
 
     const p = Math.max(1, parseInt(page, 10));
     const l = Math.min(100, parseInt(limit, 10));

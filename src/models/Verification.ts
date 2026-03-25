@@ -58,7 +58,6 @@ const VerificationSchema = new Schema<IVerification>(
   { timestamps: true }
 );
 
-VerificationSchema.index({ tenantId: 1 });
 VerificationSchema.index({ status: 1 });
 
 export const Verification = mongoose.model<IVerification>('Verification', VerificationSchema);
