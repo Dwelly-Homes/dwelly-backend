@@ -22,22 +22,28 @@ export const submitInquiry = async (req: AuthRequest, res: Response, next: NextF
 
     if (!property) { sendError(res, 'Property not found.', 404); return; }
 
-    // Link to a registered user account if email or phone matches
-    const senderUser = senderEmail || senderPhone
-      ? await User.findOne({
-          $or: [
-            ...(senderEmail ? [{ email: senderEmail.toLowerCase() }] : []),
-            ...(senderPhone ? [{ phone: senderPhone }] : []),
-          ],
-        }).select('_id')
-      : null;
+    // If the request came from an authenticated user, use their ID directly.
+    // Otherwise fall back to email/phone lookup so anonymous submissions can
+    // still be linked if the address matches an existing account.
+    let senderId: string | null = null;
+    if (req.user?.userId) {
+      senderId = req.user.userId;
+    } else if (senderEmail || senderPhone) {
+      const matched = await User.findOne({
+        $or: [
+          ...(senderEmail ? [{ email: senderEmail.toLowerCase() }] : []),
+          ...(senderPhone ? [{ phone: senderPhone }] : []),
+        ],
+      }).select('_id');
+      senderId = matched?._id?.toString() ?? null;
+    }
 
     const inquiry = await Inquiry.create({
       propertyId,
       tenantId: property.tenantId,
       agentId: property.agentId,
       inquiryType: inquiryType || 'general',
-      senderId: senderUser?._id ?? null,
+      senderId,
       senderName,
       senderPhone,
       senderEmail: senderEmail || null,
