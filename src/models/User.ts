@@ -2,6 +2,15 @@ import mongoose, { Document, Schema, Types } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { UserRole, AccountType } from '../types';
 
+export interface INotificationPreferences {
+  inquiry: boolean;
+  verification: boolean;
+  property: boolean;
+  payment: boolean;
+  earb: boolean;
+  system: boolean;
+}
+
 export interface IUser extends Document {
   _id: Types.ObjectId;
   fullName: string;
@@ -13,6 +22,7 @@ export interface IUser extends Document {
   tenantId: Types.ObjectId | null;
   isPhoneVerified: boolean;
   isActive: boolean;
+  notificationPreferences: INotificationPreferences;
   passwordResetToken?: string | null;
   passwordResetExpires?: Date | null;
   refreshTokens: string[];
@@ -33,6 +43,17 @@ const UserSchema = new Schema<IUser>(
     tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', default: null },
     isPhoneVerified: { type: Boolean, default: false },
     isActive:        { type: Boolean, default: true },
+    notificationPreferences: {
+      type: {
+        inquiry:      { type: Boolean, default: true },
+        verification: { type: Boolean, default: true },
+        property:     { type: Boolean, default: true },
+        payment:      { type: Boolean, default: true },
+        earb:         { type: Boolean, default: true },
+        system:       { type: Boolean, default: true },
+      },
+      default: () => ({ inquiry: true, verification: true, property: true, payment: true, earb: true, system: true }),
+    },
     passwordResetToken:   { type: String,  default: null, select: false },
     passwordResetExpires: { type: Date,    default: null, select: false },
     refreshTokens: { type: [String], default: [], select: false },
