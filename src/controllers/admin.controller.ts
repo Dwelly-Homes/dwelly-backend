@@ -144,6 +144,33 @@ export const getAuditLog = async (req: AuthRequest, res: Response, next: NextFun
   } catch (err) { next(err); }
 };
 
+// ─── ADMIN: LIST TENANTS ──────────────────────────────────────────────────────
+
+export const adminListTenants = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { status, accountType, search, page, limit: lim } = req.query as Record<string, string>;
+    const { page: p, limit: l, skip } = getPagination(page, lim || '20');
+
+    const filter: Record<string, unknown> = {};
+    if (status && status !== 'all') filter.status = status;
+    if (accountType && accountType !== 'all') filter.accountType = accountType;
+    if (search) filter.businessName = { $regex: search, $options: 'i' };
+
+    const [tenants, total] = await Promise.all([
+      Tenant.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(l)
+        .select('businessName slug accountType status verificationStatus contactEmail contactPhone county activeListings totalListings subscriptionPlan createdAt'),
+      Tenant.countDocuments(filter),
+    ]);
+
+    sendSuccess(res, 'Tenants fetched.', tenants, 200, {
+      page: p, limit: l, total, totalPages: Math.ceil(total / l),
+    });
+  } catch (err) { next(err); }
+};
+
 // ─── ADMIN: GET TENANT DETAIL ─────────────────────────────────────────────────
 
 export const adminGetTenantDetail = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
