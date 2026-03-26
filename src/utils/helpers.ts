@@ -52,8 +52,20 @@ export const generateToken = (): string => {
 
 export const normalizePhone = (phone: string): string => {
   // Convert 07XXXXXXXX or 01XXXXXXXX → +2547XXXXXXXX or +2541XXXXXXXX
-  const cleaned = phone.replace(/\s+/g, '').replace(/^0/, '+254');
-  if (!cleaned.startsWith('+254')) return `+254${cleaned}`;
+  const cleaned = phone.replace(/\s+/g, '');
+
+  if (/^0[17]\d{8}$/.test(cleaned)) {
+    return cleaned.replace(/^0/, '+254');
+  }
+
+  if (/^\+254[17]\d{8}$/.test(cleaned)) {
+    return cleaned;
+  }
+
+  if (/^254[17]\d{8}$/.test(cleaned)) {
+    return `+${cleaned}`;
+  }
+
   return cleaned;
 };
 

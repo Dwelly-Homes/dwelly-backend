@@ -172,7 +172,7 @@ export const getMarketplaceListings = async (req: AuthRequest, res: Response, ne
 
 export const getMarketplaceProperty = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const property = await Property.findOne({ _id: req.params.id, status: PropertyStatus.AVAILABLE, isHiddenByAdmin: false })
+    const property = await Property.findOne({ _id: req.params.id, isHiddenByAdmin: false })
       .populate({ path: 'tenantId', select: 'businessName slug logo verificationStatus earbNumber earbExpiryDate county contactPhone' })
       .populate({ path: 'agentId', select: 'fullName' });
     if (!property) { sendError(res, 'Property not found or no longer available.', 404); return; }
