@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import {
   getPlatformStats, getRegistrationTrend, getListingsByCounty,
-  getActivityFeed, getAuditLog, adminGetTenantDetail,
+  getActivityFeed, getAuditLog, adminListTenants, adminGetTenantDetail,
   getEarbTracker, sendEarbReminders, markEarbRenewed, sendTenantNotification,
 } from '../controllers/admin.controller';
 import { authenticate, requirePlatformAdmin } from '../middleware/auth';
@@ -18,6 +18,7 @@ router.get('/activity-feed',             getActivityFeed);
 router.get('/audit-log',                 getAuditLog);
 
 // Tenant management
+router.get('/tenants',                   adminListTenants);
 router.get('/tenants/:id',               adminGetTenantDetail);
 
 // EARB

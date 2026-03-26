@@ -8,8 +8,24 @@ const getTransporter = (): Transporter => {
     transporter = nodemailer.createTransport({
       host: config.email.host,
       port: config.email.port,
-      secure: config.email.port === 465,
-      auth: { user: config.email.user, pass: config.email.pass },
+      secure: config.email.port === 465,   // true for port 465, false for 587
+      requireTLS: config.email.port === 587, // enforce STARTTLS on port 587
+      auth: {
+        user: config.email.user,
+        pass: config.email.pass.replace(/\s/g, ''), // strip spaces from Gmail App Passwords
+      },
+      tls: {
+        rejectUnauthorized: true,
+      },
+    });
+
+    // Verify connection on first use (logs clearly if credentials are wrong)
+    transporter.verify((error) => {
+      if (error) {
+        console.error('❌ Email transporter verification failed:', error.message);
+      } else {
+        console.log('✅ Email transporter ready:', config.email.user);
+      }
     });
   }
   return transporter;
@@ -51,15 +67,27 @@ const baseTemplate = (content: string) => `
 
 const sendEmail = async (to: string, subject: string, html: string): Promise<void> => {
   try {
-    await getTransporter().sendMail({
+    const info = await getTransporter().sendMail({
       from: `"${config.email.fromName}" <${config.email.from}>`,
       to,
       subject,
       html,
     });
+    console.log(`📧 Email sent to ${to} | messageId: ${info.messageId}`);
   } catch (error) {
-    console.error('Email send failed:', error);
-    // Do not re-throw — email failure should not crash the request
+    console.error(`❌ Email send failed to ${to}:`, error);
+    // Re-throw so callers can decide whether to surface the error to the user
+    throw error;
+  }
+};
+
+// ─── SOFT-SEND (non-critical emails — never crash the request) ────────────────
+
+const sendEmailSoft = async (to: string, subject: string, html: string): Promise<void> => {
+  try {
+    await sendEmail(to, subject, html);
+  } catch {
+    // Already logged by sendEmail — background emails should not crash requests
   }
 };
 
@@ -95,7 +123,7 @@ export const sendVerificationApprovedEmail = async (to: string, name: string): P
     <a href="${config.clientUrl}/dashboard/properties/new" class="btn">Add Your First Listing</a>
     <div class="info-box">Your Verified Agent or Verified Landlord badge is now active on your profile and all your listings.</div>
   `);
-  await sendEmail(to, '✅ Your Dwelly Homes Account is Verified!', html);
+  await sendEmailSoft(to, '✅ Your Dwelly Homes Account is Verified!', html);
 };
 
 export const sendVerificationRejectedEmail = async (to: string, name: string, reason: string): Promise<void> => {
@@ -106,7 +134,7 @@ export const sendVerificationRejectedEmail = async (to: string, name: string, re
     <p>You are welcome to resubmit your documents after addressing the issue above.</p>
     <a href="${config.clientUrl}/dashboard/verification" class="btn">Resubmit Documents</a>
   `);
-  await sendEmail(to, 'Dwelly Homes — Verification Update', html);
+  await sendEmailSoft(to, 'Dwelly Homes — Verification Update', html);
 };
 
 export const sendVerificationInfoRequestEmail = async (to: string, name: string, notes: string): Promise<void> => {
@@ -116,7 +144,7 @@ export const sendVerificationInfoRequestEmail = async (to: string, name: string,
     <div class="info-box"><strong>What is needed:</strong><br/>${notes}</div>
     <a href="${config.clientUrl}/dashboard/verification" class="btn">Update My Documents</a>
   `);
-  await sendEmail(to, 'Action Required — Dwelly Homes Verification', html);
+  await sendEmailSoft(to, 'Action Required — Dwelly Homes Verification', html);
 };
 
 export const sendEarbExpiryReminderEmail = async (
@@ -130,9 +158,11 @@ export const sendEarbExpiryReminderEmail = async (
     <a href="${config.clientUrl}/dashboard/verification" class="btn">Upload Renewed Certificate</a>
     <p>To renew your certificate, visit the <a href="https://www.estateagentsboard.or.ke">EARB website</a>.</p>
   `);
-  await sendEmail(to, `${urgency}Your EARB Certificate Expires in ${daysRemaining} Days`, html);
+  await sendEmailSoft(to, `${urgency}Your EARB Certificate Expires in ${daysRemaining} Days`, html);
 };
 
+// sendInvitationEmail intentionally uses sendEmail (not soft) so the caller
+// can detect delivery failure and roll back the invitation record.
 export const sendInvitationEmail = async (
   to: string, inviteeName: string, orgName: string, role: string, inviteUrl: string
 ): Promise<void> => {
@@ -154,7 +184,7 @@ export const sendNewInquiryEmail = async (
     <a href="${inquiryUrl}" class="btn">View Inquiry</a>
     <p>Respond quickly — tenants who don't hear back within hours often move on to the next listing.</p>
   `);
-  await sendEmail(to, `New Inquiry — ${propertyTitle}`, html);
+  await sendEmailSoft(to, `New Inquiry — ${propertyTitle}`, html);
 };
 
 export const sendSubscriptionConfirmationEmail = async (
@@ -170,5 +200,5 @@ export const sendSubscriptionConfirmationEmail = async (
     </div>
     <a href="${config.clientUrl}/dashboard/billing" class="btn">View Billing Details</a>
   `);
-  await sendEmail(to, 'Dwelly Homes — Subscription Confirmed', html);
+  await sendEmailSoft(to, 'Dwelly Homes — Subscription Confirmed', html);
 };
