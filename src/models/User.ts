@@ -22,6 +22,9 @@ export interface IUser extends Document {
   tenantId: Types.ObjectId | null;
   isPhoneVerified: boolean;
   isActive: boolean;
+  occupation: string | null;
+  employer: string | null;
+  bio: string | null;
   notificationPreferences: INotificationPreferences;
   passwordResetToken?: string | null;
   passwordResetExpires?: Date | null;
@@ -57,6 +60,9 @@ const UserSchema = new Schema<IUser>(
     passwordResetToken:   { type: String,  default: null, select: false },
     passwordResetExpires: { type: Date,    default: null, select: false },
     refreshTokens: { type: [String], default: [], select: false },
+    occupation:  { type: String, default: null, trim: true },
+    employer:    { type: String, default: null, trim: true },
+    bio:         { type: String, default: null, maxlength: 500, trim: true },
     lastLoginAt:   { type: Date, default: null },
   },
   { timestamps: true }
