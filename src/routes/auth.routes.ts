@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   register, login, verifyOtp, resendOtp, refreshToken,
   logout, forgotPassword, resetPassword, validateResetToken,
+  getMe, updateMe, changePassword,
 } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
 import {
@@ -19,6 +20,9 @@ router.post('/verify-otp',        validate(verifyOtpValidator),                 
 router.post('/resend-otp',        otpLimiter,                                     resendOtp);
 router.post('/refresh-token',                                                      refreshToken);
 router.post('/logout',            authenticate,                                    logout);
+router.get('/me',                 authenticate,                                    getMe);
+router.patch('/me',               authenticate,                                    updateMe);
+router.post('/change-password',   authenticate,                                    changePassword);
 router.post('/forgot-password',   authLimiter, validate(forgotPasswordValidator), forgotPassword);
 router.patch('/reset-password',   validate(resetPasswordValidator),               resetPassword);
 router.get('/validate-reset-token',                                                validateResetToken);

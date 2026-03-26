@@ -22,11 +22,22 @@ export const submitInquiry = async (req: AuthRequest, res: Response, next: NextF
 
     if (!property) { sendError(res, 'Property not found.', 404); return; }
 
+    // Link to a registered user account if email or phone matches
+    const senderUser = senderEmail || senderPhone
+      ? await User.findOne({
+          $or: [
+            ...(senderEmail ? [{ email: senderEmail.toLowerCase() }] : []),
+            ...(senderPhone ? [{ phone: senderPhone }] : []),
+          ],
+        }).select('_id')
+      : null;
+
     const inquiry = await Inquiry.create({
       propertyId,
       tenantId: property.tenantId,
       agentId: property.agentId,
       inquiryType: inquiryType || 'general',
+      senderId: senderUser?._id ?? null,
       senderName,
       senderPhone,
       senderEmail: senderEmail || null,
@@ -61,6 +72,36 @@ export const submitInquiry = async (req: AuthRequest, res: Response, next: NextF
   } catch (err) { next(err); }
 };
 
+// ─── GET MY INQUIRIES (SEARCHER — by sender email) ────────────────────────────
+
+export const getMyInquiries = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const user = await User.findById(req.user!.userId).select('email');
+    if (!user) { sendError(res, 'User not found.', 404); return; }
+
+    const { status, type, page, limit: lim } = req.query as Record<string, string>;
+    const { page: p, limit: l, skip } = getPagination(page, lim || '20');
+
+    const filter: Record<string, unknown> = { senderEmail: user.email };
+    if (status && status !== 'all') filter.status = status;
+    if (type && type !== 'all') filter.inquiryType = type;
+
+    const [inquiries, total] = await Promise.all([
+      Inquiry.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(l)
+        .populate('propertyId', 'title images county neighborhood monthlyRent')
+        .populate('agentId', 'fullName phone'),
+      Inquiry.countDocuments(filter),
+    ]);
+
+    sendSuccess(res, 'Your inquiries fetched.', inquiries, 200, {
+      page: p, limit: l, total, totalPages: Math.ceil(total / l),
+    });
+  } catch (err) { next(err); }
+};
+
 // ─── GET TENANT INQUIRIES (INBOX) ─────────────────────────────────────────────
 
 export const getTenantInquiries = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
@@ -81,7 +122,8 @@ export const getTenantInquiries = async (req: AuthRequest, res: Response, next: 
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(l)
-        .populate('propertyId', 'title images'),
+        .populate('propertyId', 'title images')
+        .populate('senderId', '_id fullName'),
       Inquiry.countDocuments(filter),
     ]);
 

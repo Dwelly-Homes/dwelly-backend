@@ -369,6 +369,48 @@ export const resetPassword = async (req: AuthRequest, res: Response, next: NextF
   }
 };
 
+// ─── GET MY PROFILE ───────────────────────────────────────────────────────────
+
+export const getMe = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const user = await User.findById(req.user!.userId);
+    if (!user) { sendError(res, 'User not found.', 404); return; }
+    sendSuccess(res, 'Profile fetched.', user);
+  } catch (err) { next(err); }
+};
+
+// ─── UPDATE MY PROFILE ────────────────────────────────────────────────────────
+
+export const updateMe = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const allowed = ['fullName', 'occupation', 'employer', 'bio'];
+    const updates: Record<string, unknown> = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    const user = await User.findByIdAndUpdate(req.user!.userId, updates, { new: true });
+    if (!user) { sendError(res, 'User not found.', 404); return; }
+    sendSuccess(res, 'Profile updated.', user);
+  } catch (err) { next(err); }
+};
+
+// ─── CHANGE PASSWORD ──────────────────────────────────────────────────────────
+
+export const changePassword = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) { sendError(res, 'currentPassword and newPassword are required.', 400); return; }
+    if (newPassword.length < 8) { sendError(res, 'New password must be at least 8 characters.', 400); return; }
+    const user = await User.findById(req.user!.userId).select('+password');
+    if (!user) { sendError(res, 'User not found.', 404); return; }
+    const valid = await user.comparePassword(currentPassword);
+    if (!valid) { sendError(res, 'Current password is incorrect.', 400); return; }
+    user.password = newPassword;
+    await user.save();
+    sendSuccess(res, 'Password changed successfully.');
+  } catch (err) { next(err); }
+};
+
 // ─── VALIDATE RESET TOKEN ─────────────────────────────────────────────────────
 
 export const validateResetToken = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {

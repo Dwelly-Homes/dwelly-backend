@@ -11,6 +11,11 @@ export interface INotificationPreferences {
   system: boolean;
 }
 
+export interface ISavedProperty {
+  property: Types.ObjectId;
+  savedAt: Date;
+}
+
 export interface IUser extends Document {
   _id: Types.ObjectId;
   fullName: string;
@@ -22,7 +27,11 @@ export interface IUser extends Document {
   tenantId: Types.ObjectId | null;
   isPhoneVerified: boolean;
   isActive: boolean;
+  occupation: string | null;
+  employer: string | null;
+  bio: string | null;
   notificationPreferences: INotificationPreferences;
+  savedProperties: ISavedProperty[];
   passwordResetToken?: string | null;
   passwordResetExpires?: Date | null;
   refreshTokens: string[];
@@ -57,6 +66,13 @@ const UserSchema = new Schema<IUser>(
     passwordResetToken:   { type: String,  default: null, select: false },
     passwordResetExpires: { type: Date,    default: null, select: false },
     refreshTokens: { type: [String], default: [], select: false },
+    occupation:  { type: String, default: null, trim: true },
+    employer:    { type: String, default: null, trim: true },
+    bio:         { type: String, default: null, maxlength: 500, trim: true },
+    savedProperties: {
+      type: [{ property: { type: Schema.Types.ObjectId, ref: 'Property' }, savedAt: { type: Date, default: Date.now } }],
+      default: [],
+    },
     lastLoginAt:   { type: Date, default: null },
   },
   { timestamps: true }

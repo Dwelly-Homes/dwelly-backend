@@ -90,3 +90,24 @@ export const removeTeamMember = async (req: AuthRequest, res: Response, next: Ne
     sendSuccess(res, 'Team member removed.');
   } catch (err) { next(err); }
 };
+
+export const searchSearchers = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const q = String(req.query.q ?? '').trim();
+    if (!q || q.length < 2) { sendSuccess(res, 'Results.', []); return; }
+
+    const users = await User.find({
+      role: UserRole.SEARCHER,
+      isActive: true,
+      $or: [
+        { fullName: { $regex: q, $options: 'i' } },
+        { phone:    { $regex: q, $options: 'i' } },
+        { email:    { $regex: q, $options: 'i' } },
+      ],
+    })
+      .select('_id fullName phone email')
+      .limit(10);
+
+    sendSuccess(res, 'Searchers found.', users);
+  } catch (err) { next(err); }
+};
