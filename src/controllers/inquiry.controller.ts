@@ -22,11 +22,22 @@ export const submitInquiry = async (req: AuthRequest, res: Response, next: NextF
 
     if (!property) { sendError(res, 'Property not found.', 404); return; }
 
+    // Link to a registered user account if email or phone matches
+    const senderUser = senderEmail || senderPhone
+      ? await User.findOne({
+          $or: [
+            ...(senderEmail ? [{ email: senderEmail.toLowerCase() }] : []),
+            ...(senderPhone ? [{ phone: senderPhone }] : []),
+          ],
+        }).select('_id')
+      : null;
+
     const inquiry = await Inquiry.create({
       propertyId,
       tenantId: property.tenantId,
       agentId: property.agentId,
       inquiryType: inquiryType || 'general',
+      senderId: senderUser?._id ?? null,
       senderName,
       senderPhone,
       senderEmail: senderEmail || null,
@@ -111,7 +122,8 @@ export const getTenantInquiries = async (req: AuthRequest, res: Response, next: 
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(l)
-        .populate('propertyId', 'title images'),
+        .populate('propertyId', 'title images')
+        .populate('senderId', '_id fullName'),
       Inquiry.countDocuments(filter),
     ]);
 

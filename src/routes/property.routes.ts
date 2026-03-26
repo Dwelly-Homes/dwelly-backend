@@ -4,6 +4,7 @@ import {
   uploadPropertyImages, deletePropertyImage, reorderPropertyImages, setCoverImage,
   getMarketplaceListings, getMarketplaceProperty, adminTogglePropertyVisibility,
 } from '../controllers/property.controller';
+import { getSavedProperties, saveProperty, unsaveProperty } from '../controllers/savedProperty.controller';
 import { authenticate, requireAgentOrAdmin, requirePlatformAdmin } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { createPropertyValidator, updatePropertyValidator, marketplaceQueryValidator } from '../validators/property.validator';
@@ -14,6 +15,11 @@ const router = Router();
 // ─── PUBLIC MARKETPLACE ───────────────────────────────────────────────────────
 router.get('/marketplace',          validate(marketplaceQueryValidator), getMarketplaceListings);
 router.get('/marketplace/:id',                                           getMarketplaceProperty);
+
+// ─── SAVED PROPERTIES (any authenticated user) ───────────────────────────────
+router.get('/saved',                authenticate,                        getSavedProperties);
+router.post('/:id/save',            authenticate,                        saveProperty);
+router.delete('/:id/save',          authenticate,                        unsaveProperty);
 
 // ─── DASHBOARD (authenticated) ───────────────────────────────────────────────
 router.get('/',                     authenticate, requireAgentOrAdmin,   getMyProperties);

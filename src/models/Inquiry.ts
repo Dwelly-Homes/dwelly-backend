@@ -9,7 +9,8 @@ export interface IInquiry extends Document {
   inquiryType: InquiryType;
   status: InquiryStatus;
 
-  // Contact info (searcher is not a registered user)
+  // Contact info
+  senderId: Types.ObjectId | null;   // populated if sender has a registered account
   senderName: string;
   senderPhone: string;
   senderEmail: string | null;
@@ -32,6 +33,7 @@ const InquirySchema = new Schema<IInquiry>(
     inquiryType: { type: String, enum: Object.values(InquiryType), default: InquiryType.GENERAL },
     status: { type: String, enum: Object.values(InquiryStatus), default: InquiryStatus.NEW },
 
+    senderId:   { type: Schema.Types.ObjectId, ref: 'User', default: null },
     senderName: { type: String, required: true, trim: true },
     senderPhone: { type: String, required: true },
     senderEmail: { type: String, default: null, lowercase: true },
