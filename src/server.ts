@@ -1,12 +1,18 @@
 import 'dotenv/config';
+import http from 'http';
 import app from './app';
 import { connectDB } from './config/database';
 import { config } from './config';
+import { initSocket } from './sockets/chat.socket';
 
 const start = async (): Promise<void> => {
   await connectDB();
 
-  const server = app.listen(config.port, () => {
+  // Wrap Express app in a raw HTTP server so Socket.IO can share the same port
+  const httpServer = http.createServer(app);
+  initSocket(httpServer);
+
+  httpServer.listen(config.port, () => {
     console.log(`
 ╔══════════════════════════════════════════════════════╗
 ║           🏠  DWELLY HOMES API                       ║
@@ -15,6 +21,7 @@ const start = async (): Promise<void> => {
 ║  Port        : ${String(config.port).padEnd(36)}║
 ║  API Prefix  : ${config.apiPrefix.padEnd(36)}║
 ║  Health      : http://localhost:${config.port}/health${' '.repeat(Math.max(0, 19 - String(config.port).length))}║
+║  WebSocket   : ws://localhost:${config.port}/socket.io${' '.repeat(Math.max(0, 16 - String(config.port).length))}║
 ╚══════════════════════════════════════════════════════╝
     `);
   });
@@ -22,12 +29,11 @@ const start = async (): Promise<void> => {
   // ─── GRACEFUL SHUTDOWN ────────────────────────────────────────────────────
   const shutdown = (signal: string) => {
     console.log(`\n⚠️  Received ${signal}. Shutting down gracefully...`);
-    server.close(() => {
+    httpServer.close(() => {
       console.log('✅ HTTP server closed.');
       process.exit(0);
     });
 
-    // Force exit after 10s if graceful shutdown stalls
     setTimeout(() => {
       console.error('❌ Forced shutdown after timeout.');
       process.exit(1);

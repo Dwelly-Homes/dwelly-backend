@@ -15,6 +15,7 @@ import inquiryRoutes      from './routes/inquiry.routes';
 import verificationRoutes from './routes/verification.routes';
 import paymentRoutes      from './routes/payment.routes';
 import notificationRoutes from './routes/notification.routes';
+import chatRoutes         from './routes/chat.routes';
 import adminRoutes        from './routes/admin.routes';
 
 const app: Application = express();
@@ -58,6 +59,7 @@ app.use(`${api}/inquiries`,     inquiryRoutes);
 app.use(`${api}/verification`,  verificationRoutes);
 app.use(`${api}/payments`,      paymentRoutes);
 app.use(`${api}/notifications`, notificationRoutes);
+app.use(`${api}/chat`,          chatRoutes);
 app.use(`${api}/admin`,         adminRoutes);
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────
