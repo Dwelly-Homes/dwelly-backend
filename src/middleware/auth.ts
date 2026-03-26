@@ -3,6 +3,20 @@ import { verifyAccessToken } from '../utils/jwt';
 import { AuthRequest, UserRole } from '../types';
 import { sendError } from '../utils/response';
 
+// Like authenticate, but does NOT reject requests with no/invalid token —
+// it simply leaves req.user undefined and calls next().
+export const optionalAuthenticate = (req: AuthRequest, _res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      req.user = verifyAccessToken(authHeader.split(' ')[1]);
+    } catch {
+      // Invalid token — treat as unauthenticated, do not reject
+    }
+  }
+  next();
+};
+
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
   const authHeader = req.headers.authorization;
 
