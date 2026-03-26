@@ -24,8 +24,15 @@ export const inviteTeamMember = async (req: AuthRequest, res: Response, next: Ne
     const tenant = await Tenant.findById(req.user!.tenantId);
     if (!tenant) { sendError(res, 'Tenant not found.', 404); return; }
     const token = generateToken();
-    await Invitation.create({ tenantId: req.user!.tenantId!, invitedBy: req.user!.userId, email, fullName, role, token, expiresAt: new Date(Date.now() + 48*60*60*1000) });
-    await sendInvitationEmail(email, fullName, tenant.businessName, role, `${config.clientUrl}/invite/accept?token=${token}`);
+    const invitation = await Invitation.create({ tenantId: req.user!.tenantId!, invitedBy: req.user!.userId, email, fullName, role, token, expiresAt: new Date(Date.now() + 48*60*60*1000) });
+    try {
+      await sendInvitationEmail(email, fullName, tenant.businessName, role, `${config.clientUrl}/invite/accept?token=${token}`);
+    } catch (emailErr) {
+      // Roll back the invitation so the user can retry cleanly
+      await invitation.deleteOne();
+      sendError(res, 'Invitation could not be sent — email delivery failed. Please check your email configuration.', 502);
+      return;
+    }
     sendSuccess(res, `Invitation sent to ${email}.`, { email, role }, 201);
   } catch (err) { next(err); }
 };
