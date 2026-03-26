@@ -48,6 +48,17 @@ export const uploadDocument = async (req: AuthRequest, res: Response, next: Next
     if (docType === 'earb_certificate' && req.body.earbNumber) verification.earbNumber = req.body.earbNumber as string;
     if (docType === 'earb_certificate' && req.body.earbExpiryDate) verification.earbExpiryDate = new Date(req.body.earbExpiryDate as string);
     await verification.save();
+
+    // Also persist EARB fields directly on the Tenant so EARB tracker & admin views stay in sync
+    if (docType === 'earb_certificate') {
+      const tenantUpdate: Record<string, unknown> = {};
+      if (req.body.earbNumber) tenantUpdate.earbNumber = req.body.earbNumber as string;
+      if (req.body.earbExpiryDate) tenantUpdate.earbExpiryDate = new Date(req.body.earbExpiryDate as string);
+      if (Object.keys(tenantUpdate).length > 0) {
+        await Tenant.findByIdAndUpdate(req.user!.tenantId, tenantUpdate);
+      }
+    }
+
     sendSuccess(res, 'Document uploaded.', { documentType, status: 'pending' });
   } catch (err) { next(err); }
 };
@@ -64,6 +75,14 @@ export const submitForReview = async (req: AuthRequest, res: Response, next: Nex
     if (tenant.accountType === 'estate_agent') required.push('earb_certificate','business_registration');
     const missing = required.filter((r) => !uploaded.includes(r));
     if (missing.length > 0) { sendError(res, `Missing: ${missing.join(', ')}.`, 400); return; }
+
+    // Save EARB expiry date if provided at submit time (covers the case where
+    // the user filled it in after uploading the certificate image)
+    if (req.body.earbExpiryDate) {
+      const expiry = new Date(req.body.earbExpiryDate as string);
+      verification.earbExpiryDate = expiry;
+      await Tenant.findByIdAndUpdate(req.user!.tenantId, { earbExpiryDate: expiry });
+    }
 
     verification.status = VerificationStatus.DOCUMENTS_UPLOADED;
     verification.submittedAt = new Date();
@@ -133,7 +152,11 @@ export const adminReviewVerification = async (req: AuthRequest, res: Response, n
     await verification.save();
 
     const tenantUpdate: Record<string,unknown> = { verificationStatus: status };
-    if (status === VerificationStatus.APPROVED) tenantUpdate.status = TenantStatus.ACTIVE;
+    if (status === VerificationStatus.APPROVED) {
+      tenantUpdate.status = TenantStatus.ACTIVE;
+      if (verification.earbNumber) tenantUpdate.earbNumber = verification.earbNumber;
+      if (verification.earbExpiryDate) tenantUpdate.earbExpiryDate = verification.earbExpiryDate;
+    }
     if (tenant) await Tenant.findByIdAndUpdate(tenant._id, tenantUpdate);
 
     if (submitter) {
