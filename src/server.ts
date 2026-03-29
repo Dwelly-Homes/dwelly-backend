@@ -17,9 +17,9 @@ const start = async (): Promise<void> => {
 ╔══════════════════════════════════════════════════════╗
 ║           🏠  DWELLY HOMES API                       ║
 ║──────────────────────────────────────────────────────║
-║  Environment : ${config.env.padEnd(36)}║
-║  Port        : ${String(config.port).padEnd(36)}║
-║  API Prefix  : ${config.apiPrefix.padEnd(36)}║
+║  Environment : ${config.env.padEnd(36)}              ║
+║  Port        : ${String(config.port).padEnd(36)}     ║
+║  API Prefix  : ${config.apiPrefix.padEnd(36)}        ║
 ║  Health      : http://localhost:${config.port}/health${' '.repeat(Math.max(0, 19 - String(config.port).length))}║
 ║  WebSocket   : ws://localhost:${config.port}/socket.io${' '.repeat(Math.max(0, 16 - String(config.port).length))}║
 ╚══════════════════════════════════════════════════════╝

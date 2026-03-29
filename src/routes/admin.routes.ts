@@ -6,7 +6,7 @@ import {
 } from '../controllers/admin.controller';
 import { authenticate, requirePlatformAdmin } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
 
 // All admin routes require platform_admin role
 router.use(authenticate, requirePlatformAdmin);
