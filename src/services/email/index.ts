@@ -3,6 +3,15 @@ import { config } from '../../config';
 
 let transporter: Transporter;
 
+const isSendGridAuthError = (error: unknown): boolean => {
+  const text =
+    error instanceof Error
+      ? `${error.name}: ${error.message}`
+      : String(error);
+
+  return /535/.test(text) && /authorization grant is invalid|expired, or revoked/i.test(text);
+};
+
 const getTransporter = (): Transporter => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
@@ -22,7 +31,15 @@ const getTransporter = (): Transporter => {
     // Verify connection on first use (logs clearly if credentials are wrong)
     transporter.verify((error) => {
       if (error) {
-        console.error('❌ Email transporter verification failed:', error.message);
+        if (isSendGridAuthError(error)) {
+          console.error(
+            '❌ Email transporter verification failed: SendGrid authentication failed (535). ' +
+              'Check that EMAIL_USER is "apikey" and EMAIL_PASS is an active SendGrid API key.',
+            error
+          );
+        } else {
+          console.error('❌ Email transporter verification failed:', error.message);
+        }
       } else {
         console.log('✅ Email transporter ready:', config.email.user);
       }
@@ -75,7 +92,15 @@ const sendEmail = async (to: string, subject: string, html: string): Promise<voi
     });
     console.log(`📧 Email sent to ${to} | messageId: ${info.messageId}`);
   } catch (error) {
-    console.error(`❌ Email send failed to ${to}:`, error);
+    if (isSendGridAuthError(error)) {
+      console.error(
+        `❌ Email send failed to ${to}: SendGrid authentication failed (535). ` +
+          `Check that EMAIL_USER is "apikey" and EMAIL_PASS is an active SendGrid API key.`,
+        error
+      );
+    } else {
+      console.error(`❌ Email send failed to ${to}:`, error);
+    }
     // Re-throw so callers can decide whether to surface the error to the user
     throw error;
   }
@@ -101,7 +126,8 @@ export const sendOtpEmail = async (to: string, name: string, otp: string): Promi
     <p>This code expires in <strong>10 minutes</strong>. Do not share it with anyone.</p>
     <p>If you did not request this, please ignore this email.</p>
   `);
-  await sendEmail(to, 'Your Dwelly Homes Verification Code', html);
+  // OTP delivery is best-effort because SMS already carries the same code.
+  await sendEmailSoft(to, 'Your Dwelly Homes Verification Code', html);
 };
 
 export const sendPasswordResetEmail = async (to: string, name: string, resetUrl: string): Promise<void> => {
@@ -112,7 +138,8 @@ export const sendPasswordResetEmail = async (to: string, name: string, resetUrl:
     <p>This link expires in <strong>1 hour</strong>.</p>
     <div class="info-box">If you did not request a password reset, please ignore this email. Your password will remain unchanged.</div>
   `);
-  await sendEmail(to, 'Reset Your Dwelly Homes Password', html);
+  // Password reset remains best-effort so account recovery still returns a generic success response.
+  await sendEmailSoft(to, 'Reset Your Dwelly Homes Password', html);
 };
 
 export const sendVerificationApprovedEmail = async (to: string, name: string): Promise<void> => {

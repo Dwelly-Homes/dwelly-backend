@@ -12,7 +12,7 @@ import {
 import { authLimiter, otpLimiter } from '../middleware/rateLimiter';
 import { authenticate } from '../middleware/auth';
 
-const router = Router();
+const router: Router = Router();
 
 router.post('/register',          authLimiter, validate(registerValidator),       register);
 router.post('/login',             authLimiter, validate(loginValidator),           login);

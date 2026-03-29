@@ -18,6 +18,8 @@ import { Verification } from './models/Verification';
 import { Payment } from './models/Payment';
 import { Commission } from './models/Commission';
 import { AuditLog } from './models/AuditLog';
+import { County } from './models/County';
+import { KENYAN_COUNTIES, mockPropertiesFront } from './seedData';
 import { config } from './config';
 import {
   AuditAction,
@@ -36,7 +38,6 @@ const daysAgo = (days: number) => new Date(Date.now() - days * 86400000);
 
 // ─── STATIC DATA POOLS ────────────────────────────────────────────────────────
 
-const COUNTIES = ['Nairobi', 'Mombasa', 'Kisumu', 'Nakuru', 'Kiambu', 'Machakos', 'Kajiado', 'Uasin Gishu'];
 const NAIROBI_HOODS = [
   'Westlands', 'Kilimani', 'Lavington', 'Karen', 'Parklands', 'Kasarani',
   'Embakasi', 'Ngara', 'South B', 'South C', 'Ruaka', 'Gigiri', 'Runda',
@@ -180,7 +181,14 @@ async function seed() {
   }
   // Clean searcher-specific audit logs / notifications by email
   await AuditLog.deleteMany({ actorEmail: { $in: allSeedEmails } });
+  await County.deleteMany({});
   console.log('  ✅ Cleanup done');
+
+  // ─── COUNTIES ──────────────────────────────────────────────────────────────
+  console.log('🌍 Seeding counties…');
+  const mappedCounties = KENYAN_COUNTIES.map(name => ({ name }));
+  await County.insertMany(mappedCounties);
+  console.log(`  ✅ Created ${KENYAN_COUNTIES.length} counties`);
 
   // ─── PLATFORM ADMIN ───────────────────────────────────────────────────────
   console.log('👑 Creating platform admin…');
@@ -437,7 +445,62 @@ async function seed() {
       activeListings: ltProps.filter((p: any) => p.status === 'available').length,
     });
   }
-  console.log(`  ✅ Created ${allProperties.length} properties`);
+
+  // Insert mockProperties from frontend
+  console.log('🏠 Seeding frontend mock properties…');
+  const mappedMockProps: mongoose.Document[] = [];
+  const propertyTypesMap: Record<string, string> = {
+    'Bedsitter': 'bedsitter',
+    'Studio': 'studio',
+    '1 Bedroom': '1_bedroom',
+    '2 Bedroom': '2_bedroom',
+    '3 Bedroom': '3_bedroom',
+    '4+ Bedroom': '4_plus_bedroom',
+    'Maisonette': 'maisonette',
+    'Bungalow': 'bungalow',
+    'Townhouse': 'townhouse',
+  };
+
+  for (const mp of mockPropertiesFront) {
+    // Find tenant by slug
+    const tenant = agentTenants.concat(landlordTenants).find((t: any) => t.slug === mp.agent.slug) as any;
+    if (!tenant) continue;
+    
+    // Find an agent/user who owns this tenant or works for them
+    const agent = agentAdminUsers.concat(landlordUsers).find((u: any) => String(u.tenantId) === String(tenant._id)) as any;
+    
+    const prop = await Property.create({
+      title: mp.title,
+      description: mp.description,
+      propertyType: propertyTypesMap[mp.type] || '2_bedroom',
+      monthlyRent: mp.price,
+      serviceCharge: Math.round(mp.price * 0.05),
+      status: mp.status === 'under-maintenance' ? 'under_maintenance' : mp.status,
+      county: mp.location.county,
+      constituency: mp.location.neighborhood,
+      neighborhood: mp.location.neighborhood,
+      streetEstate: mp.location.neighborhood,
+      coordinates: { lat: mp.location.lat, lng: mp.location.lng },
+      amenities: mp.amenities,
+      tenantId: tenant._id,
+      agentId: agent ? agent._id : tenant.ownerId,
+      availableFrom: new Date(),
+      expiresAt: daysFromNow(90),
+      viewCount: randInt(50, 200),
+      isHiddenByAdmin: false,
+      images: mp.images.map((img, idx) => ({
+        url: `/assets/${img}`,
+        publicId: `seed/${img}`,
+        isCover: idx === 0,
+        order: idx,
+      })),
+    });
+    mappedMockProps.push(prop);
+    allProperties.push(prop);
+  }
+  console.log(`  ✅ Created ${mappedMockProps.length} frontend mock properties`);
+
+  console.log(`  ✅ Created ${allProperties.length} total properties`);
 
   // ─── INQUIRIES ─────────────────────────────────────────────────────────────
   console.log('📬 Creating ~300 inquiries…');
