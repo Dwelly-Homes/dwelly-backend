@@ -313,7 +313,7 @@ export const getLeaseRentPayments = async (req: AuthRequest, res: Response, next
 
 export const confirmMoveIn = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { paymentId } = req.params;
+    const paymentId = req.params.paymentId as string;
     const userId = req.user!.userId;
 
     const payment = await RentPayment.findOne({ _id: paymentId, occupantUserId: userId });
@@ -350,7 +350,7 @@ export const raiseDispute = async (req: AuthRequest, res: Response, next: NextFu
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { paymentId } = req.params;
+    const paymentId = req.params.paymentId as string;
     const { reason, evidence } = req.body as { reason: string; evidence?: string };
     const userId = req.user!.userId;
 
@@ -477,7 +477,7 @@ export const adminResolveDispute = async (req: AuthRequest, res: Response, next:
   const session = await mongoose.startSession();
   session.startTransaction();
   try {
-    const { disputeId } = req.params;
+    const disputeId = req.params.disputeId as string;
     const { decision, adminNote } = req.body as {
       decision: 'release' | 'refund';
       adminNote?: string;
