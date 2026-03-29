@@ -195,6 +195,7 @@ export const login = async (req: AuthRequest, res: Response, next: NextFunction)
       : { email: identifier.toLowerCase() };
 
     const user = await User.findOne(query).select('+password +refreshTokens');
+    console.log('found user: ', user);
     if (!user || !(await user.comparePassword(password))) {
       sendError(res, 'Invalid credentials. Please check and try again.', 401);
       return;

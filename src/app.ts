@@ -19,6 +19,7 @@ import chatRoutes         from './routes/chat.routes';
 import adminRoutes        from './routes/admin.routes';
 import leaseRoutes        from './routes/lease.routes';
 import rentPaymentRoutes  from './routes/rentPayment.routes';
+import countyRoutes       from './routes/county.routes';
 
 const app: Application = express();
 
@@ -65,6 +66,7 @@ app.use(`${api}/chat`,          chatRoutes);
 app.use(`${api}/admin`,         adminRoutes);
 app.use(`${api}/leases`,        leaseRoutes);
 app.use(`${api}/rent-payments`, rentPaymentRoutes);
+app.use(`${api}/counties`,      countyRoutes);
 
 // ─── ERROR HANDLING ───────────────────────────────────────────────────────────
 app.use(notFound);
