@@ -59,7 +59,8 @@ export const initiateStkPush = async (
   phone: string,       // format: 2547XXXXXXXX (no +)
   amount: number,
   accountReference: string,
-  transactionDesc: string
+  transactionDesc: string,
+  callbackUrl?: string // override per-transaction (e.g. rent vs subscription callbacks)
 ): Promise<StkPushResult> => {
   const token = await getMpesaToken();
   const timestamp = getMpesaTimestamp();
@@ -79,7 +80,7 @@ export const initiateStkPush = async (
       PartyA: normalizedPhone,
       PartyB: config.mpesa.shortcode,
       PhoneNumber: normalizedPhone,
-      CallBackURL: config.mpesa.callbackUrl,
+      CallBackURL: callbackUrl ?? config.mpesa.callbackUrl,
       AccountReference: accountReference,
       TransactionDesc: transactionDesc,
     },

@@ -118,6 +118,14 @@ export enum AuditAction {
   ACCOUNT_SUSPEND   = 'account.suspend',
   ACCOUNT_REACTIVATE = 'account.reactivate',
   ADMIN_ACTION      = 'admin.action',
+
+  // Escrow / Rent payment events
+  RENT_PAYMENT_INITIATED       = 'rent_payment.initiated',
+  RENT_PAYMENT_HELD            = 'rent_payment.held',
+  RENT_PAYMENT_RELEASED        = 'rent_payment.released',
+  RENT_PAYMENT_REFUNDED        = 'rent_payment.refunded',
+  RENT_PAYMENT_DISPUTE_RAISED  = 'rent_payment.dispute_raised',
+  RENT_PAYMENT_DISPUTE_RESOLVED = 'rent_payment.dispute_resolved',
 }
 
 // ─── AUTH CONTEXT ──────────────────────────────────────────────────────────────
