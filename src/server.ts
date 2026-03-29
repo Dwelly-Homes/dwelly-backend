@@ -4,6 +4,7 @@ import app from './app';
 import { connectDB } from './config/database';
 import { config } from './config';
 import { initSocket } from './sockets/chat.socket';
+import { startEscrowScheduler, stopEscrowScheduler } from './services/escrow/scheduler';
 
 const start = async (): Promise<void> => {
   await connectDB();
@@ -11,6 +12,7 @@ const start = async (): Promise<void> => {
   // Wrap Express app in a raw HTTP server so Socket.IO can share the same port
   const httpServer = http.createServer(app);
   initSocket(httpServer);
+  startEscrowScheduler();
 
   httpServer.listen(config.port, () => {
     console.log(`
@@ -29,6 +31,7 @@ const start = async (): Promise<void> => {
   // ─── GRACEFUL SHUTDOWN ────────────────────────────────────────────────────
   const shutdown = (signal: string) => {
     console.log(`\n⚠️  Received ${signal}. Shutting down gracefully...`);
+    stopEscrowScheduler();
     httpServer.close(() => {
       console.log('✅ HTTP server closed.');
       process.exit(0);
